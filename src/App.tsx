@@ -44,7 +44,7 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [stars, setStars] = useState<number>(0);
   const [isListening, setIsListening] = useState<boolean>(false);
-  const [feedback, setFeedback] = useState<string>("Tap the microphone and say the letter or word!");
+  const [feedback, setFeedback] = useState<string>("Tap the microphone and say the letter!");
   const [transcript, setTranscript] = useState<string>("");
   const [gameMode, setGameMode] = useState<'learn' | 'tap'>('learn');
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
@@ -65,26 +65,31 @@ export default function App() {
 
       recognition.onstart = () => {
         setIsListening(true);
-        setFeedback("Listening closely... Speak now!");
+        setFeedback("Listening closely... Say the letter!");
       };
 
       recognition.onresult = (event: any) => {
-        const speechToText = event.results[0][0].transcript.toLowerCase();
+        const speechToText = event.results[0][0].transcript.trim().toLowerCase();
         setTranscript(speechToText);
 
         const targetLetter = currentItem.letter.toLowerCase();
         const targetWord = currentItem.word.toLowerCase();
 
-        if (speechToText.includes(targetLetter) || speechToText.includes(targetWord)) {
+        // Exact match or contains single letter / word
+        const wordsSpoken = speechToText.split(/\s+/);
+        const matchesLetter = wordsSpoken.includes(targetLetter) || speechToText === targetLetter;
+        const matchesWord = speechToText.includes(targetWord);
+
+        if (matchesLetter || matchesWord) {
           handleSuccess();
         } else {
-          setFeedback(`I heard "${speechToText}". Try saying "${currentItem.letter}" or "${currentItem.word}"!`);
+          setFeedback(`I heard "${speechToText}". Say "${currentItem.letter}"!`);
         }
       };
 
       recognition.onerror = () => {
         setIsListening(false);
-        setFeedback("Microphone busy or blocked. Try the Parent Check or Tap Mode!");
+        setFeedback("Microphone busy or blocked. Try Parent Pass or Tap Mode!");
       };
 
       recognition.onend = () => {
@@ -117,9 +122,9 @@ export default function App() {
   const handleSuccess = () => {
     setStars((prev: number) => prev + 10);
     setUnlockedLetters((prev: number) => Math.max(prev, currentIndex + 2));
-    const praises = ["🎉 Awesome job!", "⭐ Superstar!", "🚀 Amazing pronunciation!", "🥳 High five!"];
+    const praises = ["🎉 Great job!", "⭐ Superstar!", "🚀 Perfect!", "🥳 High five!"];
     setPraise(praises[Math.floor(Math.random() * praises.length)]);
-    speakText(`Correct! ${currentItem.letter} is for ${currentItem.word}.`);
+    speakText(`Correct! ${currentItem.letter}!`);
 
     setTimeout(() => {
       setPraise("");
@@ -230,7 +235,7 @@ export default function App() {
               }`}
             >
               {isListening ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
-              {isListening ? "Listening... Say it!" : "Tap to Speak"}
+              {isListening ? "Listening... Say the letter!" : "Tap & Say Letter"}
             </button>
 
             <div className="w-full bg-slate-100 p-3 rounded-xl text-center text-sm font-medium text-slate-600 min-h-[50px] flex items-center justify-center">
