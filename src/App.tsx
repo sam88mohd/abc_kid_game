@@ -8,7 +8,6 @@ interface LetterItem {
   letter: string;
   word: string;
   emoji: string;
-  isCorrect?: boolean;
 }
 
 const ALPHABET: LetterItem[] = [
@@ -40,11 +39,41 @@ const ALPHABET: LetterItem[] = [
   { letter: 'Z', word: 'Zebra', emoji: '🦓' },
 ];
 
+// Phonetic mappings so browsers correctly catch spoken single letters (e.g., "A" -> "ay")
+const PHONETIC_MAP: Record<string, string[]> = {
+  A: ['a', 'ay', 'ey', 'eh', 'hey', 'apple'],
+  B: ['b', 'bee', 'be', 'ball'],
+  C: ['c', 'see', 'sea', 'cat'],
+  D: ['d', 'dee', 'dog'],
+  E: ['e', 'ee', 'elephant'],
+  F: ['f', 'eff', 'fish'],
+  G: ['g', 'gee', 'giraffe'],
+  H: ['h', 'aitch', 'hat'],
+  I: ['i', 'eye', 'ice'],
+  J: ['j', 'jay', 'juice'],
+  K: ['k', 'kay', 'kite'],
+  L: ['l', 'ell', 'lion'],
+  M: ['m', 'em', 'monkey'],
+  N: ['n', 'en', 'nest'],
+  O: ['o', 'oh', 'owl'],
+  P: ['p', 'pee', 'pencil'],
+  Q: ['q', 'cue', 'queue', 'queen'],
+  R: ['r', 'ar', 'rabbit'],
+  S: ['s', 'ess', 'sun'],
+  T: ['t', 'tee', 'tree'],
+  U: ['u', 'you', 'umbrella'],
+  V: ['v', 'vee', 'violin'],
+  W: ['w', 'double u', 'double-u', 'whale'],
+  X: ['x', 'ex', 'xylophone'],
+  Y: ['y', 'why', 'yarn'],
+  Z: ['z', 'zee', 'zed', 'zebra']
+};
+
 export default function App() {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [stars, setStars] = useState<number>(0);
   const [isListening, setIsListening] = useState<boolean>(false);
-  const [feedback, setFeedback] = useState<string>("Tap the microphone and say the letter!");
+  const [feedback, setFeedback] = useState<string>("Tap the microphone and say just the letter!");
   const [transcript, setTranscript] = useState<string>("");
   const [gameMode, setGameMode] = useState<'learn' | 'tap'>('learn');
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
@@ -65,25 +94,20 @@ export default function App() {
 
       recognition.onstart = () => {
         setIsListening(true);
-        setFeedback("Listening closely... Say the letter!");
+        setFeedback(`Listening... Say "${currentItem.letter}"!`);
       };
 
       recognition.onresult = (event: any) => {
         const speechToText = event.results[0][0].transcript.trim().toLowerCase();
         setTranscript(speechToText);
 
-        const targetLetter = currentItem.letter.toLowerCase();
-        const targetWord = currentItem.word.toLowerCase();
+        const allowedPhrases = PHONETIC_MAP[currentItem.letter] || [currentItem.letter.toLowerCase()];
+        const isMatch = allowedPhrases.some(phrase => speechToText.includes(phrase));
 
-        // Exact match or contains single letter / word
-        const wordsSpoken = speechToText.split(/\s+/);
-        const matchesLetter = wordsSpoken.includes(targetLetter) || speechToText === targetLetter;
-        const matchesWord = speechToText.includes(targetWord);
-
-        if (matchesLetter || matchesWord) {
+        if (isMatch) {
           handleSuccess();
         } else {
-          setFeedback(`I heard "${speechToText}". Say "${currentItem.letter}"!`);
+          setFeedback(`I heard "${speechToText}". Say just "${currentItem.letter}"!`);
         }
       };
 
@@ -213,13 +237,13 @@ export default function App() {
 
         <div className="text-center mb-6">
           <h2 className="text-3xl font-black text-slate-700">
-            {currentItem.letter} is for <span className="text-purple-600 underline decoration-yellow-400">{currentItem.word}</span>
+            Say just letter <span className="text-purple-600 underline decoration-yellow-400">{currentItem.letter}</span>
           </h2>
           <button
-            onClick={() => speakText(currentItem.word)}
+            onClick={() => speakText(currentItem.letter)}
             className="mt-3 inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full font-bold text-base hover:bg-purple-200 transition cursor-pointer"
           >
-            <Volume2 className="w-5 h-5" /> Hear Word
+            <Volume2 className="w-5 h-5" /> Hear Letter
           </button>
         </div>
 
@@ -235,7 +259,7 @@ export default function App() {
               }`}
             >
               {isListening ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
-              {isListening ? "Listening... Say the letter!" : "Tap & Say Letter"}
+              {isListening ? `Listening for "${currentItem.letter}"...` : `Say "${currentItem.letter}"`}
             </button>
 
             <div className="w-full bg-slate-100 p-3 rounded-xl text-center text-sm font-medium text-slate-600 min-h-[50px] flex items-center justify-center">
@@ -309,7 +333,7 @@ export default function App() {
               <HelpCircle className="w-7 h-7" /> Help & Mic Guide
             </h3>
             <ul className="space-y-3 text-sm font-medium text-slate-600 mb-6">
-              <li>🎙️ **Microphone Permission:** If your browser blocks the microphone, click the lock icon in your browser address bar and allow mic access.</li>
+              <li>🎙️ **Letter Pronunciation:** Speak just the single letter (e.g., saying "A" or "ay").</li>
               <li>🛡️ **Parent Pass:** If your device doesn't support speech recognition or mic permissions are disabled, parents can click the **Parent Passed** button to progress!</li>
               <li>👆 **Tap Mode:** Switch to Tap Mode anytime to play without needing a microphone.</li>
             </ul>
